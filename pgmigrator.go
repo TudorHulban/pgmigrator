@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -53,11 +52,9 @@ func NewPGMigrator(params *ParamsNewPGMigrator) *PGMigrator {
 			fmt.Errorf("failed to read file: %w", errRead),
 		)
 
-		filename := filepath.Base(filePath)
-
 		migrations = append(migrations,
 			migration.Migration{
-				ID:  strings.TrimSuffix(filename, filepath.Ext(filename)),
+				ID:  filepath.Base(filePath),
 				SQL: string(content),
 			},
 		)

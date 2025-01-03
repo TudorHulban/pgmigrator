@@ -38,20 +38,25 @@ func TestPGMigrator(t *testing.T) {
 	)
 	db, errOpen := sql.Open("pgx", urlDB)
 	require.NoError(t, errOpen)
+	require.NotNil(t, db)
 
 	defer db.Close()
 
 	pgMigrator := NewPGMigrator(
 		&ParamsNewPGMigrator{
 			Directories: []fs.FS{
-				os.DirFS("./migrations"),
+				os.DirFS("./migrations2"),
+				os.DirFS("./migrations1"),
+			},
+			FilePaths: []string{
+				"pgmigrator_test.sql",
 			},
 
 			T: t,
 		},
 	)
 	require.NotNil(t, pgMigrator)
-	require.Len(t, pgMigrator.Migrations, 2)
+	require.Len(t, pgMigrator.Migrations, 3)
 
 	pgMigrator.Migrate(db)
 }
