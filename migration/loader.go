@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Load(directory fs.FS, getID GetIDFromFilename) (Migrations, error) {
+func Load(directory fs.FS) (Migrations, error) {
 	var result []Migration
 
 	if err := fs.WalkDir(
@@ -29,7 +29,7 @@ func Load(directory fs.FS, getID GetIDFromFilename) (Migrations, error) {
 			result = append(
 				result,
 				Migration{
-					ID:  getID(d.Name()),
+					ID:  d.Name(),
 					SQL: string(content),
 				},
 			)
