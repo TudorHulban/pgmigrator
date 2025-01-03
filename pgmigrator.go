@@ -7,49 +7,60 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/TudorHulban/pgmigrator/migration"
+	"github.com/stretchr/testify/require"
 )
 
-type ParamsNewPGMigrator struct {
-	Directories []fs.FS
-	FilePaths   []string
-	T           *testing.T
+type PGMigrator struct {
+	migration.Migrations
 }
 
-func NewPGMigrator(dirs []fs.FS, filePaths []string, opts ...Option) (*PGMigrator, error) {
+type ParamsNewPGMigrator struct {
+	Directories       []fs.FS
+	FilePaths         []string
+	GetIDFromFilename migration.GetIDFromFilename
+	T                 *testing.T
+}
+
+func NewPGMigrator(params *ParamsNewPGMigrator) *PGMigrator {
 	var migrations migration.Migrations
 
-	for _, dir := range dirs {
-		buf, errLoad := pgmigrate.Load(dir)
-		if errLoad != nil {
-			return nil, errLoad
-		}
+	getID := migration.IDFromFilename
+
+	if params.GetIDFromFilename != nil {
+		getID = params.GetIDFromFilename
+	}
+
+	for _, directory := range params.Directories {
+		buf, errLoad := migration.Load(
+			directory,
+			getID,
+		)
+		require.NoError(params.T, errLoad)
 
 		migrations = append(migrations, buf...)
 	}
 
-	for _, filePath := range filePaths {
+	for _, filePath := range params.FilePaths {
 		content, errRead := os.ReadFile(filePath)
-		if errRead != nil {
-			return nil, fmt.Errorf("failed to read file: %w", errRead)
-		}
+		require.NoError(
+			params.T,
+			errRead,
+			fmt.Errorf("failed to read file: %w", errRead),
+		)
 
 		filename := filepath.Base(filePath)
 
 		migrations = append(migrations,
-			pgmigrate.Migration{
+			migration.Migration{
 				ID:  strings.TrimSuffix(filename, filepath.Ext(filename)),
 				SQL: string(content),
 			},
 		)
 	}
 
-	pgm := PGMigrator{
-		m: pgmigrate.NewMigrator(migrations),
+	return &PGMigrator{
+		Migrations: migrations,
 	}
-
-	for _, opt := range opts {
-		opt(&pgm)
-	}
-
-	return &pgm, nil
 }
